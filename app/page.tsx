@@ -68,7 +68,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6 bg-gray-50 dark:bg-gray-950">
+    <div className="flex-1 space-y-6 p-6 bg-background">
       <Header title="Dashboard" subtitle="Welcome back! Here's what's happening at your restaurant today." />
 
       {/* Key Metrics */}
@@ -100,7 +100,7 @@ export default function Dashboard() {
               +8.2% from yesterday
             </div>
           </CardContent>
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-emerald-500"></div>
         </Card>
 
         <Card className="relative overflow-hidden bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">

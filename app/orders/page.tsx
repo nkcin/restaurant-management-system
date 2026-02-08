@@ -28,6 +28,18 @@ interface Order {
   status: "pending" | "completed"
 }
 
+const MAX_STORED_ORDERS = 1200
+
+function parseStoredList<T>(value: string | null): T[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
 export default function OrdersPage() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([])
@@ -35,20 +47,15 @@ export default function OrdersPage() {
   const [ingredients, setIngredients] = useState<any[]>([])
 
   useEffect(() => {
-    // Load data from localStorage
-    const savedDishes = localStorage.getItem("dishes")
-    const savedOrders = localStorage.getItem("orders")
-    const savedIngredients = localStorage.getItem("ingredients")
+    const parsedDishes = parseStoredList<Dish>(localStorage.getItem("dishes"))
+    const parsedOrders = parseStoredList<Order>(localStorage.getItem("orders"))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, MAX_STORED_ORDERS)
+    const parsedIngredients = parseStoredList<any>(localStorage.getItem("ingredients"))
 
-    if (savedDishes) {
-      setDishes(JSON.parse(savedDishes))
-    }
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders))
-    }
-    if (savedIngredients) {
-      setIngredients(JSON.parse(savedIngredients))
-    }
+    setDishes(parsedDishes)
+    setOrders(parsedOrders)
+    setIngredients(parsedIngredients)
   }, [])
 
   const addToOrder = (dishId: string) => {
@@ -153,7 +160,7 @@ export default function OrdersPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>

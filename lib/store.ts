@@ -41,6 +41,31 @@ interface AppState {
   syncWithDatabase: () => Promise<void>
 }
 
+const STORAGE_KEYS = {
+  dishes: "dishes",
+  ingredients: "ingredients",
+  orders: "orders",
+} as const
+
+const canUseBrowserStorage = () => typeof window !== "undefined"
+
+const readLocalArray = <T>(key: string): T[] => {
+  if (!canUseBrowserStorage()) return []
+  try {
+    const value = window.localStorage.getItem(key)
+    if (!value) return []
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+const writeLocalArray = <T>(key: string, data: T[]) => {
+  if (!canUseBrowserStorage()) return
+  window.localStorage.setItem(key, JSON.stringify(data))
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -62,9 +87,15 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.getDishes()
         if (response.success && response.data) {
+          writeLocalArray(STORAGE_KEYS.dishes, response.data)
           set({ dishes: response.data, isLoading: false })
         } else {
-          set({ error: response.error || "Failed to load dishes", isLoading: false })
+          const fallbackDishes = readLocalArray<Dish>(STORAGE_KEYS.dishes)
+          if (fallbackDishes.length > 0) {
+            set({ dishes: fallbackDishes, error: response.error || null, isLoading: false })
+          } else {
+            set({ error: response.error || "Failed to load dishes", isLoading: false })
+          }
         }
       },
 
@@ -72,10 +103,12 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.createDish(dish)
         if (response.success && response.data) {
-          set((state) => ({
-            dishes: [...state.dishes, response.data!],
+          const nextDishes = [...get().dishes, response.data]
+          writeLocalArray(STORAGE_KEYS.dishes, nextDishes)
+          set({
+            dishes: nextDishes,
             isLoading: false,
-          }))
+          })
         } else {
           set({ error: response.error || "Failed to add dish", isLoading: false })
         }
@@ -85,10 +118,12 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.updateDish(id, dish)
         if (response.success && response.data) {
-          set((state) => ({
-            dishes: state.dishes.map((d) => (d.id === id ? response.data! : d)),
+          const nextDishes = get().dishes.map((d) => (d.id === id ? response.data! : d))
+          writeLocalArray(STORAGE_KEYS.dishes, nextDishes)
+          set({
+            dishes: nextDishes,
             isLoading: false,
-          }))
+          })
         } else {
           set({ error: response.error || "Failed to update dish", isLoading: false })
         }
@@ -98,10 +133,12 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.deleteDish(id)
         if (response.success) {
-          set((state) => ({
-            dishes: state.dishes.filter((d) => d.id !== id),
+          const nextDishes = get().dishes.filter((d) => d.id !== id)
+          writeLocalArray(STORAGE_KEYS.dishes, nextDishes)
+          set({
+            dishes: nextDishes,
             isLoading: false,
-          }))
+          })
         } else {
           set({ error: response.error || "Failed to delete dish", isLoading: false })
         }
@@ -112,18 +149,26 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.getIngredients()
         if (response.success && response.data) {
+          writeLocalArray(STORAGE_KEYS.ingredients, response.data)
           set({ ingredients: response.data, isLoading: false })
         } else {
-          set({ error: response.error || "Failed to load ingredients", isLoading: false })
+          const fallbackIngredients = readLocalArray<Ingredient>(STORAGE_KEYS.ingredients)
+          if (fallbackIngredients.length > 0) {
+            set({ ingredients: fallbackIngredients, error: response.error || null, isLoading: false })
+          } else {
+            set({ error: response.error || "Failed to load ingredients", isLoading: false })
+          }
         }
       },
 
       updateIngredientQuantity: async (id, quantity) => {
         const response = await api.updateIngredientQuantity(id, quantity)
         if (response.success && response.data) {
-          set((state) => ({
-            ingredients: state.ingredients.map((i) => (i.id === id ? response.data! : i)),
-          }))
+          const nextIngredients = get().ingredients.map((i) => (i.id === id ? response.data! : i))
+          writeLocalArray(STORAGE_KEYS.ingredients, nextIngredients)
+          set({
+            ingredients: nextIngredients,
+          })
         } else {
           set({ error: response.error || "Failed to update ingredient" })
         }
@@ -134,9 +179,15 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.getOrders(startDate, endDate)
         if (response.success && response.data) {
+          writeLocalArray(STORAGE_KEYS.orders, response.data)
           set({ orders: response.data, isLoading: false })
         } else {
-          set({ error: response.error || "Failed to load orders", isLoading: false })
+          const fallbackOrders = readLocalArray<Order>(STORAGE_KEYS.orders)
+          if (fallbackOrders.length > 0) {
+            set({ orders: fallbackOrders, error: response.error || null, isLoading: false })
+          } else {
+            set({ error: response.error || "Failed to load orders", isLoading: false })
+          }
         }
       },
 
@@ -144,10 +195,12 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, error: null })
         const response = await api.createOrder(order)
         if (response.success && response.data) {
-          set((state) => ({
-            orders: [...state.orders, response.data!],
+          const nextOrders = [...get().orders, response.data]
+          writeLocalArray(STORAGE_KEYS.orders, nextOrders)
+          set({
+            orders: nextOrders,
             isLoading: false,
-          }))
+          })
         } else {
           set({ error: response.error || "Failed to create order", isLoading: false })
         }

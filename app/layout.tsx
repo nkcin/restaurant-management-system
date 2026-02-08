@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "RestaurantOS - Complete Management System",
   description: "AI-powered restaurant management with inventory, orders, and analytics",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -28,10 +28,10 @@ export default function RootLayout({
           disableTransitionOnChange={false}
           storageKey="restaurant-theme"
         >
-          <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+          <div className="flex h-screen bg-background">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
-              <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">{children}</main>
+              <main className="flex-1 overflow-y-auto bg-background">{children}</main>
             </div>
           </div>
         </ThemeProvider>

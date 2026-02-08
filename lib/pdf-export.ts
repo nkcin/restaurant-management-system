@@ -1,5 +1,3 @@
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
 import { format } from "date-fns"
 
 // Configuration options for PDF export
@@ -32,6 +30,17 @@ const defaultOptions: PdfExportOptions = {
   },
 }
 
+type JsPdfConstructor = typeof import("jspdf")["default"]
+type Html2CanvasFn = typeof import("html2canvas")["default"]
+
+async function loadPdfDependencies(): Promise<{
+  JsPDF: JsPdfConstructor
+  html2canvas: Html2CanvasFn
+}> {
+  const [{ default: JsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")])
+  return { JsPDF, html2canvas }
+}
+
 /**
  * Exports a DOM element to PDF
  * @param element The DOM element to export
@@ -42,6 +51,8 @@ export async function exportToPdf(element: HTMLElement, options: PdfExportOption
   const config = { ...defaultOptions, ...options }
 
   try {
+    const { JsPDF, html2canvas } = await loadPdfDependencies()
+
     // Show loading indicator
     const loadingIndicator = document.createElement("div")
     loadingIndicator.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -59,7 +70,7 @@ export async function exportToPdf(element: HTMLElement, options: PdfExportOption
     const filename = `${config.filename}${timestamp}.pdf`
 
     // Create a new jsPDF instance
-    const pdf = new jsPDF({
+    const pdf = new JsPDF({
       orientation: config.orientation,
       unit: "mm",
       format: config.pageSize,
@@ -123,6 +134,8 @@ export async function exportMultiSectionToPdf(elements: HTMLElement[], options: 
   const config = { ...defaultOptions, ...options }
 
   try {
+    const { JsPDF, html2canvas } = await loadPdfDependencies()
+
     // Show loading indicator
     const loadingIndicator = document.createElement("div")
     loadingIndicator.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -140,7 +153,7 @@ export async function exportMultiSectionToPdf(elements: HTMLElement[], options: 
     const filename = `${config.filename}${timestamp}.pdf`
 
     // Create a new jsPDF instance
-    const pdf = new jsPDF({
+    const pdf = new JsPDF({
       orientation: config.orientation,
       unit: "mm",
       format: config.pageSize,

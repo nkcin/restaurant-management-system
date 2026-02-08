@@ -84,7 +84,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6 bg-gray-50 dark:bg-gray-950">
+    <div className="flex-1 space-y-6 p-6 bg-background">
       <Header title="Settings" subtitle="Manage your restaurant system preferences and configuration" />
 
       <Tabs defaultValue="general" className="space-y-6">

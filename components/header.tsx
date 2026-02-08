@@ -24,10 +24,10 @@ export function Header({ title, subtitle }: HeaderProps) {
   const lowStockCount = ingredients.filter((ing) => ing.quantityToday <= ing.minThreshold).length
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 transition-colors">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 transition-colors">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>}
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-4">
@@ -63,7 +63,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem>
-                <span className="text-gray-500 dark:text-gray-400">No new notifications</span>
+                <span className="text-muted-foreground">No new notifications</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

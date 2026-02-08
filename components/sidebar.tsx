@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { useAppStore } from "@/lib/store"
 import { Home, Package, ShoppingCart, BarChart3, Brain, ChefHat, FileText, Settings, ChevronRight } from "lucide-react"
+import { useEffect } from "react"
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
@@ -21,31 +22,43 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { ingredients, isLoading, error, lastSync, syncWithDatabase } = useAppStore()
-  const [isSyncing, setIsSyncing] = useState(false)
+  const router = useRouter()
+  const { ingredients } = useAppStore()
 
   const lowStockCount = ingredients.filter((ing) => ing.quantityToday <= ing.minThreshold).length
 
-  const handleSync = async () => {
-    setIsSyncing(true)
-    await syncWithDatabase()
-    setIsSyncing(false)
-  }
+  useEffect(() => {
+    const prefetchRoutes = () => {
+      navigation.forEach((item) => {
+        if (item.href !== pathname) {
+          router.prefetch(item.href)
+        }
+      })
+    }
+
+    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(prefetchRoutes)
+      return () => window.cancelIdleCallback(idleId)
+    }
+
+    const timeoutId = setTimeout(prefetchRoutes, 300)
+    return () => clearTimeout(timeoutId)
+  }, [pathname, router])
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-colors">
+    <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border transition-colors">
       {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center">
-            <ChefHat className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
+            <ChefHat className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-gray-900 dark:text-white">RestaurantOS</span>
+          <span className="text-xl font-bold text-sidebar-foreground">RestaurantOS</span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-8 space-y-3">
+      <nav className="flex-1 px-4 py-8 space-y-2">
         {navigation.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -56,8 +69,8 @@ export function Sidebar() {
                 className={cn(
                   "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
                   isActive
-                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white",
+                    ? "bg-sidebar-primary/15 text-sidebar-primary"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
                 <div className="flex items-center gap-4">

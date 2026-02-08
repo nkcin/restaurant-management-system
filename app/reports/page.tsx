@@ -214,7 +214,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6 bg-gray-50 dark:bg-gray-950" ref={reportContainerRef}>
+    <div className="flex-1 space-y-6 p-6 bg-background" ref={reportContainerRef}>
       <Header title="Detailed Reports" subtitle="Comprehensive sales analysis and performance metrics" />
 
       {/* Controls */}

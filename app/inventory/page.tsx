@@ -17,7 +17,7 @@ import { Plus, Edit, Trash2, Package, AlertTriangle, X, Check } from "lucide-rea
 import Link from "next/link"
 
 interface SubIngredient {
-  name: string
+  name?: string
   description?: string
   preparation_method?: string
   cooking_time?: number
@@ -373,7 +373,7 @@ export default function InventoryPage() {
   const lowStockIngredients = ingredients.filter((ing) => ing.quantityToday <= ing.minThreshold)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>

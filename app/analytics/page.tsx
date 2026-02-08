@@ -24,6 +24,33 @@ interface Dish {
   category: string
 }
 
+const MAX_ORDERS_FOR_ANALYTICS = 1200
+
+function parseStoredList<T>(value: string | null): T[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+function normalizeOrders(orders: Order[]): Order[] {
+  const byId = new Map<string, Order>()
+
+  for (const order of orders) {
+    if (!order || typeof order.id !== "string" || typeof order.timestamp !== "string") {
+      continue
+    }
+    byId.set(order.id, order)
+  }
+
+  return Array.from(byId.values())
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, MAX_ORDERS_FOR_ANALYTICS)
+}
+
 // Enhanced tooltip component for better hover experience
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -56,26 +83,35 @@ export default function AnalyticsPage() {
   const [dishes, setDishes] = useState<Dish[]>([])
 
   useEffect(() => {
-    // Load data and generate sample data for 15 days
-    const savedOrders = localStorage.getItem("orders")
-    const savedDishes = localStorage.getItem("dishes")
-
-    if (savedDishes) {
-      setDishes(JSON.parse(savedDishes))
+    const storedDishes = parseStoredList<Dish>(localStorage.getItem("dishes"))
+    if (storedDishes.length > 0) {
+      setDishes(storedDishes)
     }
 
-    if (savedOrders) {
-      const existingOrders = JSON.parse(savedOrders)
-      setOrders(existingOrders)
+    const parsedStoredOrders = parseStoredList<Order>(localStorage.getItem("orders"))
+    const normalizedStoredOrders = normalizeOrders(parsedStoredOrders)
+
+    if (normalizedStoredOrders.length > 0) {
+      setOrders(normalizedStoredOrders)
+      if (normalizedStoredOrders.length !== parsedStoredOrders.length) {
+        localStorage.setItem("orders", JSON.stringify(normalizedStoredOrders))
+      }
+      return
     }
 
-    // Generate sample data for the last 15 days if no orders exist
-    generateSampleData()
+    const seededOrders = generateSampleData(storedDishes)
+    setOrders(seededOrders)
+    localStorage.setItem("orders", JSON.stringify(seededOrders))
   }, [])
 
-  const generateSampleData = () => {
+  const generateSampleData = (availableDishes: Dish[]) => {
     const sampleOrders: Order[] = []
-    const dishIds = ["1", "2"] // Using existing dish IDs
+    const dishIds = availableDishes.length > 0 ? availableDishes.map((dish) => dish.id) : ["1", "2"]
+    const priceByDishId = new Map(availableDishes.map((dish) => [dish.id, dish.price]))
+
+    if (dishIds.length === 0) {
+      return sampleOrders
+    }
 
     for (let i = 14; i >= 0; i--) {
       const date = new Date()
@@ -98,8 +134,12 @@ export default function AnalyticsPage() {
           }))
           .filter(() => Math.random() > 0.3) // Some orders don't have all dishes
 
+        if (items.length === 0) {
+          continue
+        }
+
         const total = items.reduce((sum, item) => {
-          const price = item.dishId === "1" ? 12.99 : 8.99
+          const price = priceByDishId.get(item.dishId) ?? (item.dishId === "1" ? 12.99 : 8.99)
           return sum + price * item.quantity
         }, 0)
 
@@ -113,8 +153,7 @@ export default function AnalyticsPage() {
       }
     }
 
-    setOrders((prev) => [...prev, ...sampleOrders])
-    localStorage.setItem("orders", JSON.stringify(sampleOrders))
+    return normalizeOrders(sampleOrders)
   }
 
   const analytics = useMemo(() => {
@@ -218,7 +257,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>

@@ -29,6 +29,39 @@ interface IngredientOptimization {
   recommendation: string
 }
 
+interface StoredOrder {
+  id: string
+  timestamp: string
+  items: { dishId: string; quantity: number }[]
+}
+
+const MAX_ORDERS_FOR_PREDICTIONS = 1200
+
+function parseStoredList<T>(value: string | null): T[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+function normalizeOrders(orders: StoredOrder[]): StoredOrder[] {
+  const byId = new Map<string, StoredOrder>()
+
+  for (const order of orders) {
+    if (!order || typeof order.id !== "string" || typeof order.timestamp !== "string" || !Array.isArray(order.items)) {
+      continue
+    }
+    byId.set(order.id, order)
+  }
+
+  return Array.from(byId.values())
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, MAX_ORDERS_FOR_PREDICTIONS)
+}
+
 // Enhanced tooltip for predictions chart
 const PredictionTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -48,7 +81,7 @@ const PredictionTooltip = ({ active, payload, label }: any) => {
         {payload[0]?.payload && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {`Safety Buffer: ${Math.round((payload.find((p) => p.dataKey === "recommended")?.value || 0) - (payload.find((p) => p.dataKey === "predicted")?.value || 0))} portions`}
+              {`Safety Buffer: ${Math.round((payload.find((p: { dataKey?: string; value?: number }) => p.dataKey === "recommended")?.value || 0) - (payload.find((p: { dataKey?: string; value?: number }) => p.dataKey === "predicted")?.value || 0))} portions`}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Based on 15-day historical data</p>
           </div>
@@ -62,17 +95,22 @@ const PredictionTooltip = ({ active, payload, label }: any) => {
 export default function PredictionsPage() {
   const [dishes, setDishes] = useState<any[]>([])
   const [ingredients, setIngredients] = useState<any[]>([])
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<StoredOrder[]>([])
   const [selectedPeriod, setSelectedPeriod] = useState<"morning" | "afternoon" | "evening">("morning")
 
   useEffect(() => {
-    const savedDishes = localStorage.getItem("dishes")
-    const savedIngredients = localStorage.getItem("ingredients")
-    const savedOrders = localStorage.getItem("orders")
+    const parsedDishes = parseStoredList<any>(localStorage.getItem("dishes"))
+    const parsedIngredients = parseStoredList<any>(localStorage.getItem("ingredients"))
+    const parsedOrders = parseStoredList<StoredOrder>(localStorage.getItem("orders"))
+    const normalizedOrders = normalizeOrders(parsedOrders)
 
-    if (savedDishes) setDishes(JSON.parse(savedDishes))
-    if (savedIngredients) setIngredients(JSON.parse(savedIngredients))
-    if (savedOrders) setOrders(JSON.parse(savedOrders))
+    setDishes(parsedDishes)
+    setIngredients(parsedIngredients)
+    setOrders(normalizedOrders)
+
+    if (normalizedOrders.length !== parsedOrders.length) {
+      localStorage.setItem("orders", JSON.stringify(normalizedOrders))
+    }
   }, [])
 
   const predictions = useMemo(() => {
@@ -92,7 +130,9 @@ export default function PredictionsPage() {
           return hour >= timeRange.start && hour < timeRange.end
         })
 
-        const dishSales = periodOrders.flatMap((order) => order.items.filter((item) => item.dishId === dish.id))
+        const dishSales = periodOrders.flatMap((order) =>
+          order.items.filter((item: { dishId: string; quantity: number }) => item.dishId === dish.id),
+        )
 
         const totalQuantity = dishSales.reduce((sum, item) => sum + item.quantity, 0)
         const avgDaily = totalQuantity / 15 // 15 days of data
@@ -196,12 +236,12 @@ export default function PredictionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Brain className="h-8 w-8 text-purple-600" />
+              <Brain className="h-8 w-8 text-primary" />
               Predictive Planning
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -426,7 +466,7 @@ export default function PredictionsPage() {
           <Card className="mt-8 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                <Brain className="h-5 w-5 text-purple-600" />
+                <Brain className="h-5 w-5 text-primary" />
                 Smart Bulk Preparation
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
